@@ -23,8 +23,7 @@ import numpy as np
 def prepare_data(df, lookahead, window):
 
     px = df['close']
-    fut_ret = utils.future_return(px, lookahead)
-    Y = utils.categoriser2(fut_ret)
+
 
     X = pd.DataFrame(index=df.index)
     for i in [200 *l for l in range(window + 1)]:
@@ -43,6 +42,10 @@ def prepare_data(df, lookahead, window):
     NORMALISATION_WINDOW=window*100
     X = X-X.ewm(com=NORMALISATION_WINDOW).mean()
     X = X/X.ewm(com=NORMALISATION_WINDOW).std()
+
+    fut_ret = utils.future_return(px, lookahead)
+    fut_ret = fut_ret - fut_ret.ewm(com=NORMALISATION_WINDOW).mean()
+    Y = utils.categoriser2(fut_ret)
 
     # TODO: drop any records which are null in either X or y
     # for now, lets just fill as zero
