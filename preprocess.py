@@ -24,7 +24,6 @@ def prepare_data(df, lookahead, window):
 
     px = df['close']
 
-
     X = pd.DataFrame(index=df.index)
     for i in [200 *l for l in range(window + 1)]:
         X['open-{}'.format(i)] = (df['open'].shift(i) / px) - 1
@@ -43,6 +42,7 @@ def prepare_data(df, lookahead, window):
     X = X-X.ewm(com=NORMALISATION_WINDOW).mean()
     X = X/X.ewm(com=NORMALISATION_WINDOW).std()
 
+    # normalise future return used for categorisation, by subtracting rolling mean.
     fut_ret = utils.future_return(px, lookahead)
     fut_ret = fut_ret - fut_ret.ewm(com=NORMALISATION_WINDOW).mean()
     Y = utils.categoriser2(fut_ret)
@@ -50,8 +50,11 @@ def prepare_data(df, lookahead, window):
     # TODO: drop any records which are null in either X or y
     # for now, lets just fill as zero
 
-    # TODO: should we normalise y too????
-    return X.fillna(0), np.nan_to_num(Y)
+    X = X.fillna(0)
+    Y = np.nan_to_num(Y)
+
+    return X, Y, px
+
 
 
 if __name__ == '__main__':

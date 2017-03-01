@@ -25,6 +25,14 @@ def categoriser2(return_series):
     """
     return 1 * (return_series > 0)
 
+def prediction_to_category2(prediction):
+    """
+    convert a series of real numbers between 0 and 1 to binary category in: (0,1)
+    :param prediction: series of floats
+    :return: series of int from (0,1)
+    """
+    return 1*prediction > 0.5
+
 
 def fx_1minute_bar_catalog():
     """
