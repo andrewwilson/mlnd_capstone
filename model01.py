@@ -35,17 +35,19 @@ class MLPModel01:
     def summary(self):
         return self.model.summary()
 
-    def fit(self, X, Y, n_epochs=10, batch_size=1024, save_model_epochs=5):
+    def fit(self, X, Y, max_epochs=10, batch_size=1024, save_model_epochs=5, es_min_delta=0.001, es_patience=10):
         self.progress_callback.save_model_epochs = save_model_epochs
 
-        filepath = os.path.join(env.SAVES_DIR, self.model_id + '.{epoch:03d}-{val_loss:.3f}.hdf5')
-        checkpoint_callback = keras.callbacks.ModelCheckpoint(filepath, monitor='val_loss', verbose=0, save_best_only=True,
-                                        save_weights_only=False, mode='auto', period=save_model_epochs)
+        early_stopping_callback = keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=es_min_delta, patience=es_patience, verbose=2, mode='auto')
 
         self.model.fit( X, Y,
             verbose=0, validation_split=0.10, batch_size=batch_size,
-            nb_epoch=n_epochs,
-            callbacks=[checkpoint_callback, self.progress_callback])
+            nb_epoch=max_epochs,
+            callbacks=[
+                self.progress_callback,
+                early_stopping_callback
+            ])
+
         return self.progress_callback
 
     def predict(self, X, batch_size=1024):
@@ -102,7 +104,7 @@ class ProgressCallback(keras.callbacks.Callback):
 
         self.epoch_count += 1
         if self.epoch_count % self.save_model_epochs == 0:
-            self.last_model_file = self.model_filename(self.run_id, self.epoch_count)
+            self.last_model_file = self.model_filename(self.run_id, self.epoch_count, validation_loss)
             self.model.save(self.last_model_file)
             self.save()
             print("saved to ", self.last_model_file)
@@ -123,10 +125,10 @@ class ProgressCallback(keras.callbacks.Callback):
         return os.path.join(env.SAVES_DIR, "model-" + run_id + ".npz")
 
     @staticmethod
-    def model_filename(run_id, epoch):
+    def model_filename(run_id, epoch, loss):
         """ the filename to use for the model state file for the given run_id
         """
-        return os.path.join(env.SAVES_DIR, 'model-{}-{}.h5'.format(run_id, epoch))
+        return os.path.join(env.SAVES_DIR, 'model-{}-{:03d}-{:.3f}.hdf5'.format(run_id, epoch, loss))
 
     @classmethod
     def load(cls, run_id):
@@ -166,10 +168,10 @@ if __name__ == '__main__':
 
     lookahead = 1
     window = 10
-    X_train, Y_train, prices_train = preprocess.prepare_data(utils.load_1minute_fx_bars("USDJPY", 2009)[:100000],
+    X_train, Y_train, prices_train = preprocess.prepare_data(utils.load_1minute_fx_bars("USDJPY", 2009),
                                                              lookahead=lookahead, window=window)
-    model = MLPModel01(lookahead=lookahead, n_features=X_train.shape[1], n_categories=2, layer_widths=[5, 10], dropout=0)
+    model = MLPModel01(lookahead=lookahead, n_features=X_train.shape[1], n_categories=2, layer_widths=[1], dropout=0)
     print(model.summary())
 
-    prog = model.fit(X_train.as_matrix(), Y_train, n_epochs=20)
+    prog = model.fit(X_train.as_matrix(), Y_train, max_epochs=100, es_min_delta=0.001, es_patience=10)
     print( prog )
