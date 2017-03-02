@@ -3,6 +3,7 @@
 """
 from __future__ import division, print_function
 
+import datetime
 import os
 import time
 
@@ -26,7 +27,8 @@ class MLPModel01:
             layer_widths=layer_widths,
             dropout=dropout
         )
-        self.model_id = "MLPModel01_LA{}_F{}_C{}_L{}_DO{}".format(
+        self.model_id = "MLPModel01_{:%Y%m%d_%H%M}_LA{}_F{}_C{}_L{}_DO{}".format(
+            datetime.datetime.now(),
             lookahead, n_features, n_categories, "_".join([str(l) for l in layer_widths]), dropout
         )
         print("Model id: ", self.model_id)
@@ -35,18 +37,25 @@ class MLPModel01:
     def summary(self):
         return self.model.summary()
 
-    def fit(self, X, Y, max_epochs=10, batch_size=1024, save_model_epochs=5, es_min_delta=0.001, es_patience=10):
+    def fit(self, X, Y, validation_data=None, max_epochs=10, batch_size=1024, save_model_epochs=5, es_min_delta=0.001, es_patience=10):
         self.progress_callback.save_model_epochs = save_model_epochs
 
-        early_stopping_callback = keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=es_min_delta, patience=es_patience, verbose=2, mode='auto')
+        early_stopping_callback = keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=es_min_delta,
+                                                                patience=es_patience, verbose=2, mode='min')
 
-        self.model.fit( X, Y,
-            verbose=0, validation_split=0.10, batch_size=batch_size,
-            nb_epoch=max_epochs,
-            callbacks=[
-                self.progress_callback,
-                early_stopping_callback
-            ])
+        learning_rate_callback = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5,
+                                                                   verbose=1, mode='min',
+                                                                   epsilon=0.0001, cooldown=0, min_lr=5e-5)
+
+        self.model.fit(X, Y,
+                       verbose=0, validation_split=0.10, batch_size=batch_size,
+                       validation_data=validation_data,
+                       nb_epoch=max_epochs,
+                       callbacks=[
+                           self.progress_callback,
+                           early_stopping_callback,
+                           learning_rate_callback
+                       ])
 
         return self.progress_callback
 
@@ -122,13 +131,13 @@ class ProgressCallback(keras.callbacks.Callback):
     def exp_filename(run_id):
         """ the filename to use for the experiment summary file for the given run_id.
         """
-        return os.path.join(env.SAVES_DIR, "model-" + run_id + ".npz")
+        return os.path.join(env.SAVES_DIR, run_id + ".npz")
 
     @staticmethod
     def model_filename(run_id, epoch, loss):
         """ the filename to use for the model state file for the given run_id
         """
-        return os.path.join(env.SAVES_DIR, 'model-{}-{:03d}-{:.3f}.hdf5'.format(run_id, epoch, loss))
+        return os.path.join(env.SAVES_DIR, '{}-{:03d}-{:.3f}.hdf5'.format(run_id, epoch, loss))
 
     @classmethod
     def load(cls, run_id):
@@ -160,18 +169,17 @@ class ProgressCallback(keras.callbacks.Callback):
             print("creating new progress for run id:", run_id)
             return ProgressCallback(run_id)
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     import preprocess
     import utils
 
-
     lookahead = 1
     window = 10
-    X_train, Y_train, prices_train = preprocess.prepare_data(utils.load_1minute_fx_bars("USDJPY", 2009),
+    X_train, Y_train, prices_train = preprocess.prepare_data(utils.load_1minute_fx_bars("USDJPY", 2009)[:10000],
                                                              lookahead=lookahead, window=window)
     model = MLPModel01(lookahead=lookahead, n_features=X_train.shape[1], n_categories=2, layer_widths=[1], dropout=0)
     print(model.summary())
 
     prog = model.fit(X_train.as_matrix(), Y_train, max_epochs=100, es_min_delta=0.001, es_patience=10)
-    print( prog )
+    print(prog)
