@@ -25,7 +25,7 @@ def prepare_data(df, lookahead, window):
     px = df['close']
 
     X = pd.DataFrame(index=df.index)
-    for i in [200 *l for l in range(window + 1)]:
+    for i in range(window + 1):
         X['open-{}'.format(i)] = (df['open'].shift(i) / px) - 1
         X['high-{}'.format(i)] = (df['high'].shift(i) / px) - 1
         X['low-{}'.format(i)] = (df['low'].shift(i) / px) - 1
@@ -59,7 +59,7 @@ def prepare_data(df, lookahead, window):
 
 if __name__ == '__main__':
     df = utils.load_1minute_fx_bars("USDJPY", 2009)
-    X_train, Y_train = prepare_data(df[:100000], lookahead=1, window=50)
+    X_train, Y_train, price_train = prepare_data(df[:100000], lookahead=1, window=3)
     print(X_train.describe().transpose())
     print(Y_train[:20])
 
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     model = MLPModel01(lookahead, n_features, n_categories, layer_widths, dropout)
     print (model.summary())
     #
-    hist = model.model.fit(X_train.as_matrix(), Y_train, verbose=2, validation_split=0.1)
+    hist = model.fit(X_train.as_matrix(), Y_train, validation_split=0.1)
 
-    X_test, Y_test = prepare_data(df[100000:200000], lookahead=1, window=50)
+    X_test, Y_test, price_test = prepare_data(df[100000:200000], lookahead=1, window=3)
     Y_pred = model.model.predict(X_test)

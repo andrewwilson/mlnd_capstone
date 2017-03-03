@@ -37,7 +37,8 @@ class MLPModel01:
     def summary(self):
         return self.model.summary()
 
-    def fit(self, X, Y, validation_data=None, max_epochs=10, batch_size=1024, save_model_epochs=5, es_min_delta=0.001, es_patience=10):
+    def fit(self, X, Y, validation_data=None, max_epochs=10, batch_size=1024, save_model_epochs=5, es_min_delta=0.001,
+            es_patience=10):
         self.progress_callback.save_model_epochs = save_model_epochs
 
         early_stopping_callback = keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=es_min_delta,
@@ -45,10 +46,13 @@ class MLPModel01:
 
         learning_rate_callback = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5,
                                                                    verbose=1, mode='min',
-                                                                   epsilon=0.0001, cooldown=0, min_lr=5e-5)
-
+                                                                   epsilon=0.0001, cooldown=2, min_lr=5e-5)
+        if not validation_data:
+            validation_split = 0.1
+        else:
+            validation_split = 0
         self.model.fit(X, Y,
-                       verbose=0, validation_split=0.10, batch_size=batch_size,
+                       verbose=0, validation_split=validation_split, batch_size=batch_size,
                        validation_data=validation_data,
                        nb_epoch=max_epochs,
                        callbacks=[
@@ -84,32 +88,49 @@ def build_model(n_features, n_categories, layer_widths, dropout):
         model.add(Dense(output_dim=1, activation='sigmoid'))
         loss_function = 'binary_crossentropy'
 
-    model.compile(loss=loss_function, optimizer='adam')
+    model.compile(loss=loss_function, optimizer='adam', metrics=['fmeasure', 'accuracy'])
 
     print('compilation took: {:.1f} seconds'.format(time.time() - start))
     return model
 
 
 class ProgressCallback(keras.callbacks.Callback):
-    def __init__(self, run_id, epoch_count=0, train_losses=None, validation_losses=None, save_model_epochs=5):
-        if train_losses is None:
-            train_losses = []
-        if validation_losses is None:
-            validation_losses = []
+    def __init__(self, run_id, epoch_count=0,
+                 train_losses=[],
+                 validation_losses=[],
+                 train_accuracies=[],
+                 validation_accuracies=[],
+                 train_f1s=[],
+                 validation_f1s=[],
+                 save_model_epochs=5):
         self.run_id = run_id
         self.train_losses = train_losses
         self.validation_losses = validation_losses
+        self.train_accuracies = train_accuracies
+        self.validation_accuracies = validation_accuracies
+        self.train_f1s = train_f1s
+        self.validation_f1s = validation_f1s
         self.epoch_count = epoch_count
         self.last_model_file = None
         self.save_model_epochs = save_model_epochs
 
     def on_epoch_end(self, epoch, logs):
+        #print(logs)
         train_loss = logs['loss']
         validation_loss = logs['val_loss']
+        train_f1 = logs['fmeasure']
+        validation_f1 = logs['val_fmeasure']
+        train_accuracy = logs['acc']
+        validation_accuracy = logs['val_acc']
         self.train_losses.append(train_loss)
         self.validation_losses.append(validation_loss)
+        self.train_accuracies.append(train_accuracy)
+        self.validation_accuracies.append(validation_accuracy)
+        self.train_f1s.append(train_f1)
+        self.validation_f1s.append(validation_f1)
 
-        print("Epoch {}, train_loss: {:.3f} validation_loss {:.3f}".format(epoch, train_loss, validation_loss))
+        print("Epoch {}, train_loss: {:.4f} validation_loss {:.4f}  validation accuracy {:.4f}  validation f1 {:.4f}"
+              .format(epoch, train_loss, validation_loss, validation_accuracy, validation_f1))
 
         self.epoch_count += 1
         if self.epoch_count % self.save_model_epochs == 0:
@@ -126,6 +147,7 @@ class ProgressCallback(keras.callbacks.Callback):
             tl=np.array(self.train_losses),
             dl=np.array(self.validation_losses),
             last_model_file=self.last_model_file)
+        # todo: load and save accuracies and f1s??
 
     @staticmethod
     def exp_filename(run_id):
@@ -137,7 +159,7 @@ class ProgressCallback(keras.callbacks.Callback):
     def model_filename(run_id, epoch, loss):
         """ the filename to use for the model state file for the given run_id
         """
-        return os.path.join(env.SAVES_DIR, '{}-{:03d}-{:.3f}.hdf5'.format(run_id, epoch, loss))
+        return os.path.join(env.SAVES_DIR, '{}-{:03d}-{:.4f}.hdf5'.format(run_id, epoch, loss))
 
     @classmethod
     def load(cls, run_id):
@@ -178,8 +200,13 @@ if __name__ == '__main__':
     window = 10
     X_train, Y_train, prices_train = preprocess.prepare_data(utils.load_1minute_fx_bars("USDJPY", 2009)[:10000],
                                                              lookahead=lookahead, window=window)
+
+    X_dev, Y_dev, prices_dev = preprocess.prepare_data(utils.load_1minute_fx_bars("USDJPY", 2009)[10000:20000],
+                                                       lookahead=lookahead, window=window)
+
     model = MLPModel01(lookahead=lookahead, n_features=X_train.shape[1], n_categories=2, layer_widths=[1], dropout=0)
     print(model.summary())
 
-    prog = model.fit(X_train.as_matrix(), Y_train, max_epochs=100, es_min_delta=0.001, es_patience=10)
+    prog = model.fit(X_train.as_matrix(), Y_train, validation_data=(X_dev.as_matrix(), Y_dev), max_epochs=100,
+                     es_min_delta=0.0001, es_patience=10)
     print(prog)
