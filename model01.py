@@ -153,13 +153,13 @@ class ProgressCallback(keras.callbacks.Callback):
     def exp_filename(run_id):
         """ the filename to use for the experiment summary file for the given run_id.
         """
-        return os.path.join(env.SAVES_DIR, run_id + ".npz")
+        return os.path.join(env.output_dir(), run_id + ".npz")
 
     @staticmethod
     def model_filename(run_id, epoch, loss):
         """ the filename to use for the model state file for the given run_id
         """
-        return os.path.join(env.SAVES_DIR, '{}-{:03d}-{:.4f}.hdf5'.format(run_id, epoch, loss))
+        return os.path.join(env.output_dir(), '{}-{:03d}-{:.4f}.hdf5'.format(run_id, epoch, loss))
 
     @classmethod
     def load(cls, run_id):
@@ -193,15 +193,15 @@ class ProgressCallback(keras.callbacks.Callback):
 
 
 if __name__ == '__main__':
-    import preprocess
+    import datasets
     import utils
 
     lookahead = 1
     window = 10
-    X_train, Y_train, prices_train = preprocess.prepare_data(utils.load_1minute_fx_bars("USDJPY", 2009)[:10000],
+    X_train, Y_train, prices_train = datasets.prepare_dataset1(utils.load_1minute_fx_bars("USDJPY", 2009)[:10000],
                                                              lookahead=lookahead, window=window)
 
-    X_dev, Y_dev, prices_dev = preprocess.prepare_data(utils.load_1minute_fx_bars("USDJPY", 2009)[10000:20000],
+    X_dev, Y_dev, prices_dev = datasets.prepare_dataset1(utils.load_1minute_fx_bars("USDJPY", 2009)[10000:20000],
                                                        lookahead=lookahead, window=window)
 
     model = MLPModel01(lookahead=lookahead, n_features=X_train.shape[1], n_categories=2, layer_widths=[1], dropout=0)

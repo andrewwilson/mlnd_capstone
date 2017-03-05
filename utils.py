@@ -1,6 +1,6 @@
 import pandas as pd
 import os, re, collections
-from env import FX_DATASET_DIR
+import env
 
 
 # def hlc_to_price(df):
@@ -40,7 +40,7 @@ def fx_1minute_bar_catalog():
     :return: dictionary of symbol versus list of years for which data has been downloaded.
     """
     res = collections.defaultdict(list)
-    files = os.listdir(FX_DATASET_DIR)
+    files = os.listdir(env.fx_dataset_dir())
     for f in files:
         m = re.search('DAT_ASCII_(\w+)_M1_(\d+).csv', f)
         if m:
@@ -56,7 +56,7 @@ def load_1minute_fx_bars(sym, date):
     :param date: the year, whose data should be loaded
     :return: pandas dataframe with columns: open, high, low, close,  with a datetime index.
     """
-    filename = os.path.join(FX_DATASET_DIR, 'DAT_ASCII_{sym}_M1_{date}.csv'.format(sym=sym, date=date))
+    filename = os.path.join(env.fx_dataset_dir(), 'DAT_ASCII_{sym}_M1_{date}.csv'.format(sym=sym, date=date))
     df = pd.read_csv(filename, header=None, sep=';',
                      names=['ts', 'open', 'high', 'low', 'close', 'volume']
                      )
