@@ -129,8 +129,8 @@ class ProgressCallback(keras.callbacks.Callback):
         self.train_f1s.append(train_f1)
         self.validation_f1s.append(validation_f1)
 
-        print("Epoch {}, train_loss: {:.4f} validation_loss {:.4f}  validation accuracy {:.4f}  validation f1 {:.4f}"
-              .format(epoch, train_loss, validation_loss, validation_accuracy, validation_f1))
+        print("Epoch {}, train_loss: {:.4f} val_loss {:.4f}  train_accuracy {:.4f} val_accuracy {:.4f}  train_f1 {:.4f} val_f1 {:.4f}"
+              .format(epoch, train_loss, validation_loss, train_accuracy, validation_accuracy, train_f1, validation_f1))
 
         self.epoch_count += 1
         if self.epoch_count % self.save_model_epochs == 0:

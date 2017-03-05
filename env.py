@@ -37,6 +37,6 @@ def _get_location(name, locations):
 
 
 if __name__ == '__main__':
-    print("Input dir:", input_dir())
-    print("Output dir:", output_dir())
-    print("FX Dataset dir", fx_dataset_dir())
+    print("input dir",input_dir())
+    print("output dir", output_dir())
+    print("fx dataset dir", fx_dataset_dir())

@@ -1,8 +1,19 @@
 from __future__ import division, print_function
 
-from model01 import MLPModel01
+
 import utils
 import pandas as pd
+import os
+import env
+
+
+def filename(dataset, lookahead, window, sym, year, include_path=True):
+    fname = "{}-LA{:03d}-W{:03d}-{}-{}.h5".format(dataset, lookahead, window, sym, year)
+
+    if include_path:
+        return os.path.join(env.input_dir(), fname)
+    else:
+        return fname
 
 
 def save(X, Y, prices, filename):
@@ -90,6 +101,7 @@ def prepare_dataset1(df, lookahead, window):
 
 
 if __name__ == '__main__':
+
     df = utils.load_1minute_fx_bars("USDJPY", 2009)
     X_train, Y_train, price_train = prepare_dataset1(df[:100000], lookahead=1, window=3)
     print(X_train.describe().transpose())
@@ -104,6 +116,7 @@ if __name__ == '__main__':
     layer_widths = [10,10,10]
     dropout = 0
 
+    from model01 import MLPModel01
     model = MLPModel01(lookahead, n_features, n_categories, layer_widths, dropout)
     print (model.summary())
     #

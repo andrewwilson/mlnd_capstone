@@ -4,4 +4,6 @@ fxdata
 .git
 .idea
 .ipynb_checkpoints
-
+input
+output
+dataprep
