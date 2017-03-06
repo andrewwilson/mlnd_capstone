@@ -16,18 +16,20 @@ def filename(dataset, lookahead, window, sym, year, include_path=True):
         return fname
 
 
-def save(X, Y, prices, filename):
+def save(X, Y, prices, future_returns, filename):
     """
     saves the given feature dataframe, label series and price series to the specified file
     :param X: features design matrix as pandas Dataframe
     :param Y: labels as pandas Series
     :param prices: price series, as pandas Series.
+    :param future_returns: as pandas Seriers
     :param filename: filename into which to save
     """
-    store = pd.HDFStore(filename, 'w')
-    X.to_hdf(store, 'X')
-    Y.to_hdf(store, 'Y')
-    prices.to_hdf(store, 'prices')
+    with pd.HDFStore(filename, 'w') as store:
+        X.to_hdf(store, 'X')
+        Y.to_hdf(store, 'Y')
+        prices.to_hdf(store, 'prices')
+        future_returns.to_hdf(store, 'future_returns')
 
 
 def load(filename):
@@ -38,11 +40,13 @@ def load(filename):
         X - feature matrix as pandas DataFrame
         Y - label series as pandas Series
         prices - price series as pandas Series
+        future_returns - series of futures returns, as pandas Series
     """
     X = pd.read_hdf(filename, 'X')
     Y = pd.read_hdf(filename, 'Y')
     prices = pd.read_hdf(filename, 'prices')
-    return X, Y, prices
+    future_returns = pd.read_hdf(filename, 'future_returns')
+    return X, Y, prices, future_returns
 
 
 def prepare_dataset1(df, lookahead, window):
@@ -54,13 +58,15 @@ def prepare_dataset1(df, lookahead, window):
         - binary (0,1) categories, corresponding to direction of future return over *lookahead* periods
     prices:
         - closing price series, with index aligned to the features and labels
+    future_returns
+        - series of future returns of the closing price seriers, lookahead periods into the future
     Note that NaN's are dropped. and that features and labels are normalised based on an exponentially weighted
     moving mean and standard deviation, over a window that's 100 times bigger than *window*.
 
     :param df: dataframe of open, high, low, close price data with datetime index.
     :param lookahead: number of periods to look ahead to compute the future return direction label.
     :param window: total number of periods of history to create futures for.
-    :return: X,Y, prices
+    :return: X,Y,prices,future_returns
     """
 
     px = df['close']
@@ -83,10 +89,11 @@ def prepare_dataset1(df, lookahead, window):
     X = X-X.ewm(com=NORMALISATION_WINDOW, min_periods=NORMALISATION_WINDOW).mean()
     X = X/X.ewm(com=NORMALISATION_WINDOW, min_periods=NORMALISATION_WINDOW).std()
 
-    # normalise future return used for categorisation, by subtracting rolling mean.
     fut_ret = utils.future_return(px, lookahead)
-    fut_ret = fut_ret - fut_ret.ewm(com=NORMALISATION_WINDOW).mean()
-    Y = utils.categoriser2(fut_ret)
+    # normalise future return used for categorisation, by subtracting rolling mean.
+    # note that we return the raw, un-normalised future return.
+    normed_fut_ret = fut_ret - fut_ret.ewm(com=NORMALISATION_WINDOW).mean()
+    Y = utils.categoriser2(normed_fut_ret)
 
     # drop any records which are null in either X or y
     idx_x = X.dropna().index
@@ -96,14 +103,15 @@ def prepare_dataset1(df, lookahead, window):
     X = X.ix[idx]
     Y = Y.ix[idx]
     px = px.ix[idx]
+    fut_ret = fut_ret.ix[idx]
 
-    return X, Y, px
+    return X, Y, px, fut_ret
 
 
 if __name__ == '__main__':
 
-    df = utils.load_1minute_fx_bars("USDJPY", 2009)
-    X_train, Y_train, price_train = prepare_dataset1(df[:100000], lookahead=1, window=3)
+    df = utils.load_1minute_fx_bars("EURSEK", 2009)
+    X_train, Y_train, price_train, _ = prepare_dataset1(df[:100000], lookahead=1, window=3)
     print(X_train.describe().transpose())
     print(Y_train[:20])
 
@@ -120,7 +128,10 @@ if __name__ == '__main__':
     model = MLPModel01(lookahead, n_features, n_categories, layer_widths, dropout)
     print (model.summary())
     #
-    hist = model.fit(X_train.as_matrix(), Y_train, validation_split=0.1)
+    hist = model.fit(X_train.as_matrix(), Y_train)
 
-    X_test, Y_test, price_test = prepare_dataset1(df[100000:200000], lookahead=1, window=3)
-    Y_pred = model.model.predict(X_test)
+    X_test, Y_test, price_test, fut_returns_test = prepare_dataset1(df[100000:200000], lookahead=1, window=3)
+    Y_pred = model.predict(X_test.as_matrix())
+
+    fut_returns_test = fut_returns_test - fut_returns_test.mean()
+    print (utils.prediction_to_category2(Y_pred) * fut_returns_test)
