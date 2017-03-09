@@ -67,6 +67,8 @@ class MLPModel01:
         return self.model.predict(X, batch_size)
 
 
+
+
 def build_model(n_features, n_categories, layer_widths, dropout):
     start = time.time()
     model = Sequential()
@@ -103,6 +105,7 @@ class ProgressCallback(keras.callbacks.Callback):
                  train_f1s=[],
                  validation_f1s=[],
                  save_model_epochs=5):
+        # TODO: replace specific collections with generic dict of logs.
         self.run_id = run_id
         self.train_losses = train_losses
         self.validation_losses = validation_losses
@@ -129,7 +132,7 @@ class ProgressCallback(keras.callbacks.Callback):
         self.train_f1s.append(train_f1)
         self.validation_f1s.append(validation_f1)
 
-        print("Epoch {}, train_loss: {:.4f} val_loss {:.4f}  train_accuracy {:.4f} val_accuracy {:.4f}  train_f1 {:.4f} val_f1 {:.4f}"
+        print("Epoch {}, train_loss: {:.5f} val_loss {:.5f}  train_accuracy {:.4f} val_accuracy {:.4f}  train_f1 {:.4f} val_f1 {:.4f}"
               .format(epoch, train_loss, validation_loss, train_accuracy, validation_accuracy, train_f1, validation_f1))
 
         self.epoch_count += 1
