@@ -109,7 +109,7 @@ def prepare_dataset1(df, lookahead, window):
     return X, Y, px, fut_ret
 
 
-def prepare_dataset2(df, lookahead, window):
+def prepare_dataset2(df, lookahead, n_features):
     """
     Differs from dataset1, in that the window is not simply n previous periods, but covers a greater time period
     aimed at making more efficient use of the number of features
@@ -133,13 +133,13 @@ def prepare_dataset2(df, lookahead, window):
 
     :param df: dataframe of open, high, low, close price data with datetime index.
     :param lookahead: number of periods to look ahead to compute the future return direction label.
-    :param window: total number of periods of history to create futures for.
+    :param n_features: total number of periods of history to create futures for.
     :return: X,Y,prices,future_returns
     """
 
     px = df['close']
 
-    max_lb_idx = max(0,window-4)
+    max_lb_idx = max(0, n_features - 4)
     lookbacks = np.concatenate([np.arange(4), 4+(np.arange(max_lb_idx) **2)]).astype(int)
 
     X = pd.DataFrame(index=df.index)

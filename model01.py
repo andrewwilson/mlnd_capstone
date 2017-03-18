@@ -201,15 +201,15 @@ if __name__ == '__main__':
 
     lookahead = 1
     window = 10
-    X_train, Y_train, prices_train = datasets.prepare_dataset1(utils.load_1minute_fx_bars("USDJPY", 2009)[:10000],
-                                                             lookahead=lookahead, window=window)
+    X_train, Y_train, prices_train, fut_ret_train = datasets.prepare_dataset2(utils.load_1minute_fx_bars("USDJPY", 2009)[:10000],
+                                                                              lookahead=lookahead, n_features=window)
 
-    X_dev, Y_dev, prices_dev = datasets.prepare_dataset1(utils.load_1minute_fx_bars("USDJPY", 2009)[10000:20000],
-                                                       lookahead=lookahead, window=window)
+    X_dev, Y_dev, prices_dev, fut_ret_dev = datasets.prepare_dataset2(utils.load_1minute_fx_bars("USDJPY", 2009)[10000:20000],
+                                                                      lookahead=lookahead, n_features=window)
 
     model = MLPModel01(lookahead=lookahead, n_features=X_train.shape[1], n_categories=2, layer_widths=[1], dropout=0)
     print(model.summary())
 
     prog = model.fit(X_train.as_matrix(), Y_train, validation_data=(X_dev.as_matrix(), Y_dev), max_epochs=100,
-                     es_min_delta=0.0001, es_patience=10)
+                     es_min_delta=0.0001, es_patience=1000)
     print(prog)
