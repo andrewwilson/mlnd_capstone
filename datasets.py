@@ -172,6 +172,61 @@ def prepare_dataset2(df, lookahead, n_periods):
     return X, Y, px
 
 
+def prepare_dataset3(df, lookahead, n_periods):
+    """
+    Differs from dataset2, in the treatment of open, high, low historuc features, which are computed relative to the close at that time, not the latest close.
+
+    :param df: dataframe of open, high, low, close price data with datetime index.
+    :param lookahead: number of periods to look ahead to compute the future return direction label.
+    :param n_periods: total number of periods of history to create futures for.
+    :return: X,Y,prices
+    """
+
+    px = df['close']
+
+    max_lb_idx = max(0, n_periods - 4)
+    lookbacks = np.concatenate([np.arange(4), 4+(np.arange(max_lb_idx) **2)]).astype(int)
+
+    X = pd.DataFrame(index=df.index)
+    for i in lookbacks:
+        period_i_close = df['close'].shift(i)
+        X['open-{}'.format(i)] = (df['open'].shift(i) / period_i_close) - 1
+        X['high-{}'.format(i)] = (df['high'].shift(i) / period_i_close) - 1
+        X['low-{}'.format(i)] = (df['low'].shift(i) / period_i_close) - 1
+
+        # don't add close-0, as it's always zero
+        if i > 0:
+            X['close-{}'.format(i)] = (df['close'].shift(i) / px) - 1
+
+    # Normalise features, by removing long-term mean components and scaling to acheive a std-deviation of approx 1.
+    # since this is timeseries, data we shouldn't consider the whole data set, just data in the past, as of any
+    # given moment. Hence we use rolling measures of mean and std. This also has the advantage that
+    # use Exponentially weighted moving averages, since they are smoother than simple moving averages.
+
+    # base the normalisation on 10 times the largest lookback
+    NORMALISATION_WINDOW = lookbacks[-1]*10
+    X = X-X.ewm(com=NORMALISATION_WINDOW, min_periods=NORMALISATION_WINDOW).mean()
+    X = X/X.ewm(com=NORMALISATION_WINDOW, min_periods=NORMALISATION_WINDOW).std()
+
+    fut_ret = utils.future_return(px, lookahead)
+    # normalise future return used for categorisation, by subtracting rolling mean.
+    # note that we return the raw, un-normalised future return.
+    normed_fut_ret = fut_ret - fut_ret.ewm(com=NORMALISATION_WINDOW).mean()
+    Y = utils.categoriser2(normed_fut_ret)
+
+    # drop any records which are null in either X or y
+    idx_x = X.dropna().index
+    idx_y = Y.dropna().index
+    idx = idx_x.intersection(idx_y)
+
+    X = X.ix[idx]
+    Y = Y.ix[idx]
+    px = px.ix[idx]
+
+    return X, Y, px
+
+
+
 def random_series(n, mean=100, std=0.00033, seconds=10):
     """
     returns a random series, as an unpredicable price series
