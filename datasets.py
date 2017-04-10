@@ -174,7 +174,7 @@ def prepare_dataset2(df, lookahead, n_periods):
 
 def prepare_dataset3(df, lookahead, n_periods):
     """
-    Differs from dataset2, in the treatment of open, high, low historuc features, which are computed relative to the close at that time, not the latest close.
+    Differs from dataset2, in the treatment of open, high, low historic features, which are computed relative to the close at that time, not the latest close.
 
     :param df: dataframe of open, high, low, close price data with datetime index.
     :param lookahead: number of periods to look ahead to compute the future return direction label.
