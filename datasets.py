@@ -261,7 +261,20 @@ def fractional_time_of_day(ts):
     return 2*np.pi * (ts.hour*60 + ts.minute)/(24*60)
 
 def resample_and_forward_fill(df, maxfill=0):
-    return df.resample('1T', label='right').pad(limit=maxfill)
+    """
+    Resamples the specified OHLC dataframe to 1 minute samples, forward filling for 'maxfill' periods.
+    Note that open, high and low columns get forward filled from the previous close sample
+    """
+    df = df.resample('1T', label='right').asfreq()
+
+    # open, high and low get forward filled from close
+    df['close'] = df['close'].ffill(limit=maxfill)
+    df.loc[df['open'].isnull(), 'open'] = df['close']
+    df.loc[df['high'].isnull(), 'high'] = df['close']
+    df.loc[df['low'].isnull(), 'low'] = df['close']
+
+    return df
+
 
 if __name__ == '__main__':
 
