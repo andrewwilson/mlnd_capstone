@@ -175,13 +175,13 @@ def prepare_dataset2(df, lookahead, n_periods):
 def prepare_dataset3(df, lookahead, n_periods):
     """
     Differs from dataset2, in the treatment of open, high, low historic features, which are computed relative to the close at that time, not the latest close.
-
+    
     :param df: dataframe of open, high, low, close price data with datetime index.
     :param lookahead: number of periods to look ahead to compute the future return direction label.
     :param n_periods: total number of periods of history to create futures for.
     :return: X,Y,prices
     """
-
+    df = resample_and_forward_fill(df, 10)
     px = df['close']
 
     max_lb_idx = max(0, n_periods - 4)
@@ -205,8 +205,9 @@ def prepare_dataset3(df, lookahead, n_periods):
 
     # base the normalisation on 10 times the largest lookback
     NORMALISATION_WINDOW = lookbacks[-1]*10
-    X = X-X.ewm(com=NORMALISATION_WINDOW, min_periods=NORMALISATION_WINDOW).mean()
-    X = X/X.ewm(com=NORMALISATION_WINDOW, min_periods=NORMALISATION_WINDOW).std()
+    X = X-X.ewm(com=NORMALISATION_WINDOW, min_periods=NORMALISATION_WINDOW, ignore_na=True).mean()
+    # replace zero standard deviation values with NaN. This will ensure result is also a NaN, rather than infinite.
+    X = X/X.ewm(com=NORMALISATION_WINDOW, min_periods=NORMALISATION_WINDOW, ignore_na=True).std().replace(0, np.nan)
 
     fut_ret = utils.future_return(px, lookahead)
     # normalise future return used for categorisation, by subtracting rolling mean.
@@ -251,10 +252,24 @@ def random_ohlc(n):
     return s.resample('1min').agg({'open': lambda x: x[0], 'high': max, 'low': min, 'close': lambda x: x[-1]})
 
 
+def fractional_time_of_week(ts):
+    """ converts a pandas Timestamp into a float representing the relative time within a calendar week 0 and 2*pi """
+    return 2*np.pi * (ts.day*24*60  + ts.hour*60 + ts.minute)/(24*60*7)
+
+def fractional_time_of_day(ts):
+    """ converts a pandas Timestamp into a float representing the time of day between 0 and 2*pi """
+    return 2*np.pi * (ts.hour*60 + ts.minute)/(24*60)
+
+def resample_and_forward_fill(df, maxfill=0):
+    return df.resample('1T', label='right').pad(limit=maxfill)
+
 if __name__ == '__main__':
 
     df = utils.load_1minute_fx_bars("EURSEK", 2012)
-    X_train, Y_train, price_train = prepare_dataset1(df[:100000], lookahead=1, window=3)
+    df = resample_and_forward_fill(df)
+    #df = random_ohlc(200000)
+
+    X_train, Y_train, price_train = prepare_dataset3(df[:100000], lookahead=1, n_periods=3)
     print(X_train.describe().transpose())
     print(Y_train[:20])
 
@@ -273,8 +288,9 @@ if __name__ == '__main__':
     #
     hist = model.fit(X_train.as_matrix(), Y_train, max_epochs=20)
 
-    X_test, Y_test, price_test = prepare_dataset1(df[100000:200000], lookahead=1, window=3)
+    X_test, Y_test, price_test = prepare_dataset3(df[100000:200000], lookahead=1, n_periods=3)
     Y_pred = model.predict(X_test.as_matrix())
 
     import metrics
     metrics.performance_report("foo", price_test, lookahead, Y_test, Y_pred)
+
