@@ -16,11 +16,12 @@ def performance_report(name, price_series, lookahead, true_class, prediction,
     fut_returns = utils.future_return(price_series, lookahead).fillna(0)
     pred_fut_return = predicted_future_return(fut_returns, predicted_class, demean=True)
 
-
-    print("{name}: f1-score: {f1:.3f}, mean future return: {mean_fut_return:.3f} bps".format(
+    print("{name}: f1-score: {f1:.3f}, mean future return: {mean_fut_return:.3f} bps,"
+          " annualized future return {ann_fut_return:.3f}".format(
         name=name,
         f1=f1_score(true_class, predicted_class, average='weighted'),
-        mean_fut_return = pred_fut_return.mean() * 1e4
+        mean_fut_return = pred_fut_return.mean() * 1e4,
+        ann_fut_return = annualized_mean_future_return(pred_fut_return, lookahead_minutes=lookahead)
         ))
 
     if f1_detail:
@@ -35,6 +36,17 @@ def performance_report(name, price_series, lookahead, true_class, prediction,
     if heatmap:
         show_heatmap(name, true_class, predicted_class)
 
+
+def annualized_mean_future_return(pred_future_return, lookahead_minutes):
+    """
+    returns the annualized mean future return
+    :param pred_future_return: 
+    :param lookahead_minutes: 
+    :return: 
+    """
+    one_minute_periods_per_year = 260*24*60
+    num_periods_per_year = one_minute_periods_per_year/lookahead_minutes
+    return (pred_future_return.mean() + 1) ** (num_periods_per_year-1)
 
 def predicted_future_return(fut_returns, predicted_class, demean=True):
 

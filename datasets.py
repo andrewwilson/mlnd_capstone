@@ -172,7 +172,7 @@ def prepare_dataset2(df, lookahead, n_periods):
     return X, Y, px
 
 
-def prepare_dataset3(df, lookahead, n_periods):
+def prepare_dataset3(df, lookahead, n_periods, lookback_spacing="squared"):
     """
     Differs from dataset2, in the treatment of open, high, low historic features, which are computed relative to the close at that time, not the latest close.
     
@@ -184,8 +184,13 @@ def prepare_dataset3(df, lookahead, n_periods):
     df = resample_and_forward_fill(df, 10)
     px = df['close']
 
-    max_lb_idx = max(0, n_periods - 4)
-    lookbacks = np.concatenate([np.arange(4), 4+(np.arange(max_lb_idx) **2)]).astype(int)
+    if lookback_spacing == "squared":
+        lookbacks = lookbacks_squared(n_periods)
+    elif lookback_spacing == "cubed":
+        lookbacks = lookbacks_cubed(n_periods)
+    else:
+        raise ValueError("unexpected lookback spacing type: " + lookback_spacing)
+
 
     X = pd.DataFrame(index=df.index)
     for i in lookbacks:
@@ -227,6 +232,15 @@ def prepare_dataset3(df, lookahead, n_periods):
     return X, Y, px
 
 
+def lookbacks_squared(n_periods):
+    max_lb_idx = max(0, n_periods - 4)
+    lookbacks = np.concatenate([np.arange(4), 4+(np.arange(max_lb_idx) **2)]).astype(int)
+    return lookbacks
+
+def lookbacks_cubed(n_periods):
+    max_lb_idx = max(0, n_periods - 4)
+    lookbacks = np.concatenate([np.arange(4), 4+(np.arange(max_lb_idx) **3)]).astype(int)
+    return lookbacks
 
 def random_series(n, mean=100, std=0.00033, seconds=10):
     """
