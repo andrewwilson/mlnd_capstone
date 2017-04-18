@@ -46,7 +46,7 @@ def annualized_mean_future_return(pred_future_return, lookahead_minutes):
     """
     one_minute_periods_per_year = 260*24*60
     num_periods_per_year = one_minute_periods_per_year/lookahead_minutes
-    return (pred_future_return.mean() + 1) ** (num_periods_per_year-1)
+    return ((pred_future_return.mean() + 1) ** (num_periods_per_year-1) ) -1
 
 def predicted_future_return(fut_returns, predicted_class, demean=True):
 
