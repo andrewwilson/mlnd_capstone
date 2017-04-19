@@ -16,7 +16,8 @@ import env
 
 
 class MLPModel01:
-    def __init__(self, lookahead, n_features, n_categories, layer_widths, dropout=0.0):
+    def __init__(self, train_ds_name, lookahead, n_features, n_categories, layer_widths, dropout=0.0):
+        self.train_ds_name = train_ds_name
         self.lookahead = lookahead
         self.n_features = n_features
         self.n_categories = n_categories
@@ -27,8 +28,9 @@ class MLPModel01:
             layer_widths=layer_widths,
             dropout=dropout
         )
-        self.model_id = "MLPModel01_{:%Y%m%d_%H%M}_LA{}_F{}_C{}_L{}_DO{}".format(
+        self.model_id = "MLPModel01_{:%Y%m%d_%H%M}_{}_LA{}_F{}_C{}_L{}_DO{}".format(
             datetime.datetime.now(),
+            train_ds_name,
             lookahead, n_features, n_categories, "_".join([str(l) for l in layer_widths]), dropout
         )
         print("Model id: ", self.model_id)
@@ -174,7 +176,9 @@ class ProgressCallback(keras.callbacks.Callback):
         fname = cls.exp_filename(run_id)
         print("loading from file:", fname)
         npz = np.load(fname)
-        assert run_id == str(npz['run_id'])
+        if not run_id == str(npz['run_id']):
+            print("WARNING: run-id doesn't match: {} != {}".format(run_id, str(npz['run_id'])))
+            
         epoch_count = int(npz['epoch_count'])
         tl = list(npz['tl'])
         dl = list(npz['dl'])
