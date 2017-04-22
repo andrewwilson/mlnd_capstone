@@ -10,6 +10,7 @@ plus the most recent price change.
 
 """
 
+
 class Baseline01:
     def __init__(self, lookahead):
         """

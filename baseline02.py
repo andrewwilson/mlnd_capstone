@@ -17,6 +17,7 @@ plus the recent moving average price change.
 
 """
 
+
 class Baseline02SMA:
 
     def __init__(self, window, lookahead):
