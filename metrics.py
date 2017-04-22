@@ -33,7 +33,7 @@ def performance_report(name, price_series, lookahead, true_class, prediction,
           " annualized future return {ann_fut_return:.3f}".format(
         name=name,
         f1=f1_score(true_class, predicted_class, average='weighted'),
-        mean_fut_return = pred_fut_return.mean() * 1e4,
+        mean_fut_return = pred_fut_return.mean() * 1e4, # scale by 1e4 to convert to basis points.
         ann_fut_return = annualized_mean_future_return(pred_fut_return, lookahead_minutes=lookahead)
         ))
 
