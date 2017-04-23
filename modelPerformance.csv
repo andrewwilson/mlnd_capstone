@@ -5,7 +5,9 @@ mean future return",Notes
 100,0,100,1,10101,1000,0.533,0.516,0.021,1.236,
 100x100,0,10000,2,20201,1000,0.542,0.52,0.023,1.39,
 500,0,500,1,50501,1000,0.547,0.518,0.021,1.166,
-500x500,0,250000,2,301001,1000,,0.516,0.026,1.639,"f1-score improved with further training, even through cross-entropy loss rose after epoch 165"
+500x500,0,250000,2,301001,165,0.551,0.518,0.021,1.201,
+500x500,0,250000,2,301001,1000,0.601,0.516,0.026,1.639,"f1-score improved with further training, even through cross-entropy loss rose after epoch 165"
+500x500,0.5,250000,2,301001,1000,,,,,
 100x100x100,0,1000000,3,30301,20,0.54,0.519,0.024,1.454,rapidly overfits without dropout
 100x100x100,0,1000000,3,30301,115,0.544,0.521,0.026,1.642,"f1-score improved with further training, even through cross-entropy loss rose after epoch 20."
 100x100x100,0.5,1000000,3,30301,1000,0.539,0.524,0.025,1.582,
