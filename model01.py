@@ -174,7 +174,7 @@ class ProgressCallback(keras.callbacks.Callback):
         :return:
         """
         fname = cls.exp_filename(run_id)
-        print("loading from file:", fname)
+        #print("loading from file:", fname)
         npz = np.load(fname)
         if not run_id == str(npz['run_id']):
             print("WARNING: run-id doesn't match: {} != {}".format(run_id, str(npz['run_id'])))
