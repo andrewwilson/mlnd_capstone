@@ -22,6 +22,7 @@ def performance_report(name, price_series, lookahead, true_class, prediction,
     :param cum_return_plot: flag - should cumulative future return chart be drawn
     :param histogram: flag - should a histogram of the predictions be drawn
     :param heatmap: should a heatmap of actual versus predicted directions be drawn.
+    :return dict of the metrics
     
     """
     predicted_class = utils.prediction_to_category2(prediction)
@@ -29,13 +30,16 @@ def performance_report(name, price_series, lookahead, true_class, prediction,
     fut_returns = utils.future_return(price_series, lookahead).fillna(0)
     pred_fut_return = predicted_future_return(fut_returns, predicted_class, demean=True)
 
-    print("{name}: f1-score: {f1:.3f}, mean future return: {mean_fut_return:.3f} bps,"
-          " annualized future return {ann_fut_return:.3f}".format(
-        name=name,
-        f1=f1_score(true_class, predicted_class, average='weighted'),
-        mean_fut_return = pred_fut_return.mean() * 1e4, # scale by 1e4 to convert to basis points.
-        ann_fut_return = annualized_mean_future_return(pred_fut_return, lookahead_minutes=lookahead)
-        ))
+    metrics = {
+        'name': name,
+        'f1_score': f1_score(true_class, predicted_class, average='weighted'),
+        'mean_fut_return': pred_fut_return.mean() * 1e4,
+        'ann_fut_return': annualized_mean_future_return(pred_fut_return, lookahead_minutes=lookahead)
+    }
+    #print(metrics)
+
+    print("{name}: f1-score: {f1_score:.3f}, mean future return: {mean_fut_return:.3f} bps,"
+          " annualized future return {ann_fut_return:.3f}".format(**metrics))
 
     if f1_detail:
         print(classification_report(true_class, predicted_class))
@@ -48,6 +52,8 @@ def performance_report(name, price_series, lookahead, true_class, prediction,
 
     if heatmap:
         show_heatmap(name, true_class, predicted_class)
+
+    return metrics
 
 
 def annualized_mean_future_return(pred_future_return, lookahead_minutes):
