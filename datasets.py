@@ -172,7 +172,7 @@ def prepare_dataset2(df, lookahead, n_periods):
     return X, Y, px
 
 
-def prepare_dataset3(df, lookahead, n_periods, lookback_spacing="squared"):
+def prepare_dataset3(df, lookahead, n_periods, lookback_spacing="squared", demean_y = True):
     """
     Differs from dataset2, in the treatment of open, high, low historic features, which are computed relative to the close at that time, not the latest close.
     
@@ -204,9 +204,9 @@ def prepare_dataset3(df, lookahead, n_periods, lookback_spacing="squared"):
             X['close-{}'.format(i)] = (df['close'].shift(i) / px) - 1
 
     # Normalise features, by removing long-term mean components and scaling to acheive a std-deviation of approx 1.
-    # since this is timeseries, data we shouldn't consider the whole data set, just data in the past, as of any
-    # given moment. Hence we use rolling measures of mean and std. This also has the advantage that
-    # use Exponentially weighted moving averages, since they are smoother than simple moving averages.
+    # Since this is timeseries, data we shouldn't consider the whole data set, just data in the past, as of any
+    # given moment. Hence we use rolling measures of mean and std. We use exponentially weighted moving averages
+    # since they are smoother than simple moving averages.
 
     # base the normalisation on 10 times the largest lookback
     NORMALISATION_WINDOW = lookbacks[-1]*10
@@ -215,10 +215,14 @@ def prepare_dataset3(df, lookahead, n_periods, lookback_spacing="squared"):
     X = X/X.ewm(com=NORMALISATION_WINDOW, min_periods=NORMALISATION_WINDOW, ignore_na=True).std().replace(0, np.nan)
 
     fut_ret = utils.future_return(px, lookahead)
-    # normalise future return used for categorisation, by subtracting rolling mean.
-    # note that we return the raw, un-normalised future return.
-    normed_fut_ret = fut_ret - fut_ret.ewm(com=NORMALISATION_WINDOW).mean()
-    Y = utils.categoriser2(normed_fut_ret)
+
+    if demean_y:
+        # normalise future return used for categorisation, by subtracting rolling mean.
+        # note that we return the raw, un-normalised future return.
+        normed_fut_ret = fut_ret - fut_ret.ewm(com=NORMALISATION_WINDOW).mean()
+        Y = utils.categoriser2(normed_fut_ret)
+    else:
+        Y = utils.categoriser2(fut_ret)
 
     # drop any records which are null in either X or y
     idx_x = X.dropna().index

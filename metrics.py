@@ -9,7 +9,9 @@ def performance_report(name, price_series, lookahead, true_class, prediction,
                        f1_detail=False,
                        cum_return_plot=False,
                        histogram=False,
-                       heatmap=False
+                       heatmap=False,
+                       savefig=None,
+                       demean_fut_return=True
                        ):
     """
     Generates a performance report
@@ -22,36 +24,41 @@ def performance_report(name, price_series, lookahead, true_class, prediction,
     :param cum_return_plot: flag - should cumulative future return chart be drawn
     :param histogram: flag - should a histogram of the predictions be drawn
     :param heatmap: should a heatmap of actual versus predicted directions be drawn.
+    :param savefig: if specified, indicates the filename under which to save the last drawn figure
     :return dict of the metrics
     
     """
     predicted_class = utils.prediction_to_category2(prediction)
 
     fut_returns = utils.future_return(price_series, lookahead).fillna(0)
-    pred_fut_return = predicted_future_return(fut_returns, predicted_class, demean=True)
+    pred_fut_return_demeaned = predicted_future_return(fut_returns, predicted_class, demean=True)
+    pred_fut_return_non_demeaned = predicted_future_return(fut_returns, predicted_class, demean=False)
 
     metrics = {
         'name': name,
         'f1_score': f1_score(true_class, predicted_class, average='weighted'),
-        'mean_fut_return': pred_fut_return.mean() * 1e4,
-        'ann_fut_return': annualized_mean_future_return(pred_fut_return, lookahead_minutes=lookahead)
+        'mean_fut_return': pred_fut_return_demeaned.mean() * 1e4,
+        'mean_fut_return_non_dm': pred_fut_return_non_demeaned.mean() * 1e4,
+        'ann_fut_return': annualized_mean_future_return(pred_fut_return_demeaned, lookahead_minutes=lookahead),
+        'ann_fut_return_non_dm': annualized_mean_future_return(pred_fut_return_non_demeaned, lookahead_minutes=lookahead)
     }
     #print(metrics)
 
     print("{name}: f1-score: {f1_score:.3f}, mean future return: {mean_fut_return:.3f} bps,"
-          " annualized future return {ann_fut_return:.3f}".format(**metrics))
+        " ({mean_fut_return_non_dm:.3f} bps),"
+          " annualized future return {ann_fut_return:.3f} ({ann_fut_return_non_dm:.3f})".format(**metrics))
 
     if f1_detail:
         print(classification_report(true_class, predicted_class))
 
     if cum_return_plot:
-        fut_return_plot(name, pred_fut_return)
+        fut_return_plot(name, pred_fut_return_demeaned, savefig)
 
     if histogram:
-        histo(name, prediction)
+        histo(name, prediction, savefig)
 
     if heatmap:
-        show_heatmap(name, true_class, predicted_class)
+        show_heatmap(name, true_class, predicted_class, savefig)
 
     return metrics
 
@@ -105,23 +112,31 @@ def aggregated_predicted_future_return(prices, prediction, agg_period, mode='sma
     return fut_returns * mult
 
 
-def fut_return_plot(name, pred_fut_return):
+def fut_return_plot(name, pred_fut_return, savefig=None):
     import matplotlib.pyplot as plt
     (pred_fut_return + 1).cumprod().plot()
     plt.title(name)
+    if savefig:
+        plt.savefig(savefig)
     plt.show()
 
 
-def histo(name, preds):
+def histo(name, preds, savefig=None):
     import matplotlib.pyplot as plt
 
     plt.hist(preds, alpha=0.5, bins=30, normed=True, label=name)
+    if savefig:
+        plt.savefig(savefig)
     plt.show()
 
 
-def show_heatmap(name, true_class, predicted_class):
+def show_heatmap(name, true_class, predicted_class, savefig=None):
     import seaborn as sns
+    import matplotlib.pyplot as plt
 
     conf = confusion_matrix(true_class, predicted_class)
     print (conf)
     sns.heatmap(conf)
+    if savefig:
+        plt.savefig(savefig)
+
