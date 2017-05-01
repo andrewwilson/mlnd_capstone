@@ -11,7 +11,7 @@ def performance_report(name, price_series, lookahead, true_class, prediction,
                        histogram=False,
                        heatmap=False,
                        savefig=None,
-                       demean_fut_return=True
+                       no_print=False
                        ):
     """
     Generates a performance report
@@ -25,6 +25,7 @@ def performance_report(name, price_series, lookahead, true_class, prediction,
     :param histogram: flag - should a histogram of the predictions be drawn
     :param heatmap: should a heatmap of actual versus predicted directions be drawn.
     :param savefig: if specified, indicates the filename under which to save the last drawn figure
+    :param no_print: flag - suppress result printing
     :return dict of the metrics
     
     """
@@ -42,11 +43,11 @@ def performance_report(name, price_series, lookahead, true_class, prediction,
         'ann_fut_return': annualized_mean_future_return(pred_fut_return_demeaned, lookahead_minutes=lookahead),
         'ann_fut_return_non_dm': annualized_mean_future_return(pred_fut_return_non_demeaned, lookahead_minutes=lookahead)
     }
-    #print(metrics)
 
-    print("{name}: f1-score: {f1_score:.3f}, mean future return: {mean_fut_return:.3f} bps,"
-        " ({mean_fut_return_non_dm:.3f} bps),"
-          " annualized future return {ann_fut_return:.3f} ({ann_fut_return_non_dm:.3f})".format(**metrics))
+    if not no_print:
+        print("{name}: f1-score: {f1_score:.3f}, mean future return: {mean_fut_return:.3f} bps,"
+            " ({mean_fut_return_non_dm:.3f} bps),"
+              " annualized future return {ann_fut_return:.3f} ({ann_fut_return_non_dm:.3f})".format(**metrics))
 
     if f1_detail:
         print(classification_report(true_class, predicted_class))
