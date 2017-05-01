@@ -70,28 +70,4 @@ class Baseline02EWMA:
         return ma_price_change + 0.5
 
 
-    # def fit(self, price_series, n_iterations=20, metric_fn=mean_squared_error):
-    #     """
-    #     tune the model's parameters to give the best prediction on the price series
-    #     """
-    #
-    #     px = price_series-price_series.mean()
-    #
-    #     def loss_fn(c):
-    #         self.centre_of_mass = c
-    #         prediction = self.predict(px)
-    #         truth = px.shift(-self.lookahead)
-    #
-    #         y_true = np.sign(fut_return.fillna(0)).astype(int)
-    #         y_pred = np.sign(pred_return.fillna(0)).astype(int)
-    #
-    #         # align series
-    #         df= pd.DataFrame({'truth':truth, 'prediction':prediction})
-    #         df.dropna(inplace=True)
-    #         loss = metric_fn(df['truth'], df['prediction'])
-    #         print c, loss
-    #         return loss
-    #     foo = minimize_scalar(loss_fn, options={'maxiter':n_iterations})
-    #     print foo
-
 
