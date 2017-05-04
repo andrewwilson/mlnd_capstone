@@ -3,7 +3,7 @@
 ## Required software
 - python 2.7
 - pip
-- curl
+- wget
 - then ```pip install -r requirements.txt```
 
 ## Data files
