@@ -13,7 +13,7 @@ these consist of:
 - saved model output (`output` folder)
 
 These can be downloaded from S3 storage using the following script:
-`. download-data-files.sh`
+`./download-data-files.sh`
 
 ## Code Overview 
 
