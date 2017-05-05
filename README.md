@@ -14,6 +14,7 @@ these consist of:
 
 These can be downloaded from S3 storage using the following script:
 `./download-data-files.sh`
+Note: if running on Windows, then cygwin or similar unix-like environment is recommended. dos2unix conversion of this file may be needed on windows, depending on your environment and local git config.
 
 ## Code Overview 
 
